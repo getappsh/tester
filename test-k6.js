@@ -3,15 +3,44 @@ import { SharedArray } from 'k6/data';
 import { group, check, sleep, fail } from "k6";
 import exec from 'k6/execution';
 
-  export const options = {
+// Add this at the top of your script
+export const options = {
     scenarios: {
         one_iteration: {
             executor: 'per-vu-iterations',
-            vus: 1, // One virtual user
-            iterations: 1, // One iteration
+            vus: 1,
+            iterations: 1,
         },
     },
+    // Add this section for Prometheus
+    external: {
+        prometheus: {
+            labels: {
+                testid: 'your_test_id'
+            }
+        }
+    }
 };
+
+// Define custom metric
+const testStatus = new Gauge('test_status_metric', 'Status of the test (1.5 for fail, 1 for success)');
+
+// Rest of your imports and constants remain the same...
+
+export default function() {
+    // Wrap your test logic in a try-catch to set the metric
+    try {
+        runSDKTest();
+        // If test completes without throwing, set success metric
+        testStatus.add(1);
+    } catch (e) {
+        // If test fails, set failure metric to 1.5
+        testStatus.add(1.5);
+        throw e;  // Re-throw to maintain original error handling
+    }
+}
+
+// Rest of your original code remains the same...
   
 let authToken;
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
