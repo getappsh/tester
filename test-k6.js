@@ -400,6 +400,6 @@ function convertAndCombine(json) {
   return Object.values(combinedResult).map(item => ({
       name: item.name,
       path: item.path,
-      success: (item.fails == 1.1)
+      success: (item.fails == 0)
   }));
 }
