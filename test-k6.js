@@ -8,7 +8,7 @@ import exec from 'k6/execution';
         one_iteration: {
             executor: 'per-vu-iterations',
             vus: 1, // One virtual user
-            iterations: 1, // One iteration
+            iterations: 1, // One iteration 1
         },
     },
 };
