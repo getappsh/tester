@@ -3,7 +3,6 @@ import { SharedArray } from 'k6/data';
 import { group, check, sleep, fail } from "k6";
 import exec from 'k6/execution';
 
-// Add this at the top of your script
 export const options = {
     scenarios: {
         one_iteration: {
@@ -12,41 +11,22 @@ export const options = {
             iterations: 1,
         },
     },
-    // Add this section for Prometheus
+    // Add Prometheus configuration
     external: {
         prometheus: {
             labels: {
-                testid: 'your_test_id'
+                testid: 'getapp_tester'
             }
         }
     }
 };
 
-// Define custom metric
+// Define custom metric for Prometheus
 const testStatus = new Gauge('test_status_metric', 'Status of the test (1.5 for fail, 1 for success)');
-
-// Rest of your imports and constants remain the same...
-
-export default function() {
-    // Wrap your test logic in a try-catch to set the metric
-    try {
-        runSDKTest();
-        // If test completes without throwing, set success metric
-        testStatus.add(1);
-    } catch (e) {
-        // If test fails, set failure metric to 1.5
-        testStatus.add(1.5);
-        throw e;  // Re-throw to maintain original error handling
-    }
-}
-
-// Rest of your original code remains the same...
   
 let authToken;
 const BASE_URL = __ENV.BASE_URL || "http://localhost:3000";
 
-
-//Do not put high value may overload Libot
 const NUMBER_OF_UNIQUE_MAPS = 1
 
 const bBoxArray = new SharedArray('bbox', function () {
@@ -57,17 +37,19 @@ const bBoxArray = new SharedArray('bbox', function () {
     const bbox = `34.472849${random()}${random()},31.519675${random()}${random()},34.476277${random()}${random()},31.522433${random()}${random()}`
     dataArray.push(bbox)
   }
-
-  // more operations
-  return dataArray; // must be an array
+  return dataArray;
 });
 
 export default function(){
-  runSDKTest()
-  
-  // runHeathCheck()
-  // getRecords()
-
+  try {
+    runSDKTest()
+    // If test completes without throwing, set success metric
+    testStatus.add(1);
+  } catch (e) {
+    // If test fails, set failure metric to 1.5
+    testStatus.add(1.5);
+    throw e;  // Re-throw to maintain original error handling
+  }
 }
 
 function runSDKTest() {
@@ -76,7 +58,6 @@ function runSDKTest() {
       group("Login", () => {
         {
             let url = BASE_URL + `/api/login`;
-            // TODO: edit the parameters of the request body.
             let body = {"username": "rony@example.com", "password": "rony123"};
             let params = {headers: {"Content-Type": "application/json", "Accept": "application/json", "Authorization": `Bearer ${authToken}`}};
             let request = http.post(url, JSON.stringify(body), params);
@@ -89,18 +70,15 @@ function runSDKTest() {
                 return true;
                 }
             });
-            authToken = request.json("accessToken"); // Assuming token is returned in the response
-            // console.log("Received token:", authToken); // Print the token
+            authToken = request.json("accessToken");
         }
       });
     }
 
     group("Discovery", () => {
-
       {
           let url = BASE_URL + `/api/device/discover`;
           let body = {"discoveryType":"get-map","general":{"personalDevice":{"name":"user-1","idNumber":"idNumber-123","personalNumber":"personalNumber-123"},"situationalDevice":{"weather":23,"bandwidth":30,"time": new Date(),"operativeState":true,"power":94,"location":{"lat":"33.4","long":"23.3","alt":"344"}},"physicalDevice":{"OS":"android","MAC":"00-B0-D0-63-C2-26","IP":"129.2.3.4","ID":"a36147aa81428033","serialNumber":"a36147aa81428033","possibleBandwidth":"Yes","availableStorage":"38142328832"}},"softwareData":{"formation":"yatush","platform":{"name":"Olar","platformNumber":"1","virtualSize":0,"components":[]}},"mapData":{"productId":"dummy product","productName":"no-name","productVersion":"3","productType":"osm","description":"bla-bla","boundingBox":"1,2,3,4","crs":"WGS84","imagingTimeStart":"2024-02-26T15:17:14.679733","imagingTimeEnd":"2024-02-26T15:17:14.680871","creationDate":"2024-02-26T15:17:14.681874","source":"DJI Mavic","classification":"raster","compartmentalization":"N/A","region":"ME","sensor":"CCD","precisionLevel":"3.14","resolution":"0.12"}};
-          // let body = {"discoveryType":"get-map","general":{"personalDevice":{"name":"user-1","idNumber":"idNumber-123","personalNumber":"personalNumber-123"},"situationalDevice":{"weather":23,"bandwidth":30,"time": new Date(),"operativeState":true,"power":94,"location":{"lat":"33.4","long":"23.3","alt":"344"}},"physicalDevice":{"OS":"android","MAC":"00-B0-D0-63-C2-26","IP":"129.2.3.4","ID":"a36147aa81428033","serialNumber":"a36147aa81428033","possibleBandwidth":"Yes","availableStorage":"38142328832"}},"softwareData":{"formation":"yatush","platform":{"name":"Olar","platformNumber":"1","virtualSize":0,"components":[]}}};
           let params = {headers: {"Content-Type": "application/json", "Accept": "application/json", "Authorization": `Bearer ${authToken}`}};
           let request = http.post(url, JSON.stringify(body), params);
 
@@ -129,9 +107,8 @@ function runSDKTest() {
             return true;
             }
         });
-      }
+    }
 
-    
     let importRequestId = '0';
     group("Import Map", () => {
       const mapImport = () => {
@@ -166,15 +143,11 @@ function runSDKTest() {
             }
             return true;
             },
-
         });
         status = request.json("status")
       } 
 
-      // if (exec.vu.idInTest % 10 == 0){
-        mapImport()
-      // }
-
+      mapImport()
       sleep(1)
       while (status !== 'Done' && status !== 'Error'){
         mapStatus()
@@ -218,10 +191,8 @@ function runSDKTest() {
           downloadUrl = request.json("url")
           sleep(1)
       }
-
     });
 
-    // put in a comment if you want to skip file download
     filesDownload(downloadUrl);
 
     group("Delivery", () => {
@@ -230,7 +201,6 @@ function runSDKTest() {
         sleep(2)
       }
     });
-
 
     group("Config", () => {
       {
@@ -250,9 +220,7 @@ function runSDKTest() {
       }
     });
 
-
     group("Inventory Updates", () => {
-
       {
           let url = BASE_URL + `/api/map/inventory/updates`;
           let body = {"deviceId": deviceId, "inventory": {importRequestId: "delivery"}};
@@ -269,7 +237,6 @@ function runSDKTest() {
           });
           sleep(1)
       }
-
     });
 }
 
@@ -280,13 +247,11 @@ function filesDownload(downloadUrl){
     }
 
     let params = {headers: {"Content-Type": "application/json", "Accept": "application/json"}};
-    // let request = http.get(downloadUrl, params);
 
     const responses = http.batch([
       ['GET', changeFileExtension(downloadUrl), params],
       ['GET', downloadUrl, params],
     ]);
-
 
     check(responses[0], {
       "Download json": (r) => {
@@ -295,7 +260,6 @@ function filesDownload(downloadUrl){
       }
       return true;
       },
-
     });
 
     check(responses[1], {
@@ -305,22 +269,18 @@ function filesDownload(downloadUrl){
         }
         return true;
         },
-
     });
-
   });
 }
 
 function changeFileExtension(url) {
-  // Check if the URL ends with .gpkg
   if (url.endsWith('.gpkg')) {
-      // Replace the .gpkg with .json
       return url.slice(0, -5) + '.json';
   } else {
-      // If the URL doesn't end with .gpkg, return it unchanged
       return url;
   }
 }
+
 function runHeathCheck(){
   group ("Health", () => {
     {
@@ -334,7 +294,6 @@ function runHeathCheck(){
           }
           return true;
           },
-
       });
     }
       
@@ -349,7 +308,6 @@ function runHeathCheck(){
           }
           return true;
           },
-
       });
     }
     {
@@ -363,7 +321,6 @@ function runHeathCheck(){
           }
           return true;
           },
-
       });
     }
     {
@@ -377,15 +334,11 @@ function runHeathCheck(){
           }
           return true;
           },
-
       });
     }
-  
     sleep(1)
   });
 }
-
-
 
 export function handleSummary(data) {
   return {
@@ -401,7 +354,6 @@ function convertAndCombine(json) {
           if (group.checks && group.checks.length > 0) {
               group.checks.forEach(check => {
                   if (!combinedResult[check.name]) {
-                      // Add new entry if not already present
                       combinedResult[check.name] = {
                           name: check.name,
                           path: check.path,
@@ -409,14 +361,13 @@ function convertAndCombine(json) {
                           passes: check.passes
                       };
                   } else {
-                      // Combine fails and passes if the name already exists
                       combinedResult[check.name].fails += check.fails;
                       combinedResult[check.name].passes += check.passes;
                   }
               });
           }
           if (group.groups && group.groups.length > 0) {
-              processGroups(group.groups); // Recursively process nested groups
+              processGroups(group.groups);
           }
       });
   }
@@ -425,10 +376,10 @@ function convertAndCombine(json) {
       processGroups(json.root_group.groups);
   }
 
-  // Convert the combined result object into an array of objects
+  // Modified to return 1.5 for failures instead of false/0
   return Object.values(combinedResult).map(item => ({
       name: item.name,
       path: item.path,
-      success: (item.fails == 0)
+      success: item.fails == 0 ? 1 : 1.5  // Returns 1 for success, 1.5 for failure
   }));
 }
