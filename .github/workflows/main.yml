@@ -66,7 +66,7 @@ jobs:
           # path to the Dockerfile
           file: Dockerfile
           context: .
-          tags: ${{ secrets.REGISTRY_URL }}/getapp-dev/tester:${{ needs.calculate_new_tag.outputs.tag }}
-          #tags: ${{ secrets.REGISTRY_URL }}/getapp-dev/tester:latest
+          #tags: ${{ secrets.REGISTRY_URL }}/getapp-dev/tester:${{ needs.calculate_new_tag.outputs.tag }}
+          tags: ${{ secrets.REGISTRY_URL }}/getapp-dev/tester:latest
           push: true
           build-args: IMG_TAG=${{ needs.calculate_new_tag.outputs.tag }}
