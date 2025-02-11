@@ -27,4 +27,4 @@ COPY . .
 RUN chmod +x test-k6.js k6
 
 # Command to start the application
-CMD ["npm", "start"]
+CMD ["k6", "run", "test-k6.js"]
