@@ -3,7 +3,7 @@ import { SharedArray } from 'k6/data';
 import { group, check, sleep, fail } from "k6";
 import exec from 'k6/execution';
 
-  export const options = {
+export const options = {
     thresholds: {
       checks: [{threshold: 'rate>0.99', abortOnFail: true}], 
     },
