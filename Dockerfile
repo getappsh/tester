@@ -1,4 +1,4 @@
-FROM loadimpact/k6:latest AS k6official
+FROM grafana/k6:latest AS k6official
 
 # Base Node.js image
 FROM node:16-alpine
@@ -30,7 +30,8 @@ RUN npm install
 # Copy the rest of the application files
 COPY --chown=${uid}:${uid} . .
 
-RUN chmod +x k6-cron-runner.js  getmap-synthetic.js k6
+RUN ./k6 --version && \
+    chmod +x k6-cron-runner.js  getmap-synthetic.js k6
 
 
 CMD ["node", "k6-cron-runner.js"]

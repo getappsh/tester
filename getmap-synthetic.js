@@ -184,7 +184,8 @@ function runSDKTest() {
         getPreparedDelivery()
 
       }
-      downloadUrl = artifacts[0]?.url;
+      downloadUrl = artifacts[0]["url"];
+      console.log(downloadUrl)
         // put in a comment if you want to skip file download
       filesDownload(downloadUrl);
     }
