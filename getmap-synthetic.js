@@ -17,8 +17,8 @@ export const options = {
 };
 const getapp_success = new Rate('getapp_success');
 
+const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
 
-const BASE_URL = "https://api-getapp.apps.getapp.sh";
 //Do not put high value may overload Libot
 const NUMBER_OF_UNIQUE_MAPS = 1
 
