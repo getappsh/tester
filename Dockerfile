@@ -3,28 +3,34 @@ FROM loadimpact/k6:latest AS k6official
 # Base Node.js image
 FROM node:16-alpine
 
+# Switch to root user for security
+USER root
+ARG uid=1004370000 \
+    username=getapp
+
+# Combine user creation and CA setup in a single layer
+RUN echo "${username}:x:${uid}:${uid}:${username}:/home/${username}:/sbin/nologin" >> /etc/passwd && \
+    echo "${username}:x:${uid}:" >> /etc/group
 # Make directory
 # RUN mkdir /.npm && chown -R 1000870000:0 /.npm
 
-# Switch to root user for security
-USER root
 
 # Set working directory
 WORKDIR /app
 
 # Install k6 (use root for package installation)
-COPY --from=k6official /usr/bin/k6 .
+COPY --chown=${uid}:${uid} --from=k6official /usr/bin/k6 .
 
 # Copy package.json and package-lock.json
-COPY package*.json ./
+COPY --chown=${uid}:${uid} package*.json ./
 
 # Install dependencies
 RUN npm install 
 
 # Copy the rest of the application files
-COPY . .
+COPY --chown=${uid}:${uid} . .
 
-RUN chmod +x test-k6.js k6
+RUN chmod +x k6-cron-runner.js  getmap-synthetic.js k6
 
-# Command to start the application
-CMD ["./k6", "run", "test-k6.js"]
+
+CMD ["node", "k6-cron-runner.js"]
