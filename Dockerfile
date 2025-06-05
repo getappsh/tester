@@ -8,15 +8,16 @@ USER root
 ARG uid=1004370000 \
     username=getapp
 
+WORKDIR /getapp-tester
 # Combine user creation and CA setup in a single layer
 RUN echo "${username}:x:${uid}:${uid}:${username}:/home/${username}:/sbin/nologin" >> /etc/passwd && \
-    echo "${username}:x:${uid}:" >> /etc/group
-# Make directory
-# RUN mkdir /.npm && chown -R 1000870000:0 /.npm
+    echo "${username}:x:${uid}:" >> /etc/group && \
+    apk --no-cache add ca-certificates bash curl && \
+    mkdir -p /usr/local/share/ca-certificates/ && \
+    chown -R ${uid}:${uid} /getapp-tester
 
 
 # Set working directory
-WORKDIR /app
 
 # Install k6 (use root for package installation)
 COPY --chown=${uid}:${uid} --from=k6official /usr/bin/k6 .
