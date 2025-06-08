@@ -1,24 +1,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: landscape-ingress
-  namespace: landscape
+  name: testere-ingress
+  namespace: testere
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
   rules:
-  - host: landscape.apps.getapp.sh
+  - host: testere.apps.getapp.sh
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: landscape-service
+            name: testere-service
             port:
               number: 80
   tls:
     - hosts:
-        - landscape.apps.getapp.sh
-      secretName: landscape
+        - testere.apps.getapp.sh
+      secretName: testere

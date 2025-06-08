@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: landscape-service
-  namespace: landscape
+  name: testere-service
+  namespace: testere
 spec:
   selector:
-    app: landscape
+    app: testere
   ports:
     - protocol: TCP
       port: 80

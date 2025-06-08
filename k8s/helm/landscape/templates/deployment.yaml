@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: landscape-deployment
-  namespace: landscape
+  name: testere-deployment
+  namespace: testere
   labels:
-    app: landscape
+    app: testere
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: landscape
+      app: testere
   template:
     metadata:
       labels:
-        app: landscape
+        app: testere
     spec:
       containers:
-      - name: landscape
-        image: "harbor.getapp.sh/getapp-dev/landscape:{{ .Values.imageTag }}"
+      - name: testere
+        image: "harbor.getapp.sh/getapp-dev/testere:{{ .Values.imageTag }}"
         ports:
         - containerPort: 8000
