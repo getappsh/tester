@@ -1,0 +1,42 @@
+replicaCount: 1
+
+image:
+  repository: harbor.getapp.sh/getapp-dev/tester
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: tester.apps.getapp.sh
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tester
+      hosts:
+        - tester.apps.getapp.sh
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+env:
+  BASE_URL: "https://api-getapp.apps.getapp.sh"
+  CRON_SCHEDULE: "*/15 * * * *"
+  K6_PROM_URL: "http://monitor-prometheus-server.monitoring.svc.cluster.local:9090"
+  DEVICE_SECRET: "12345678"
