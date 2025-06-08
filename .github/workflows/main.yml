@@ -104,8 +104,9 @@ jobs: ##
           NAMESPACE: tester
         run: |
           echo "$RELEASE_TAG"
-          helm upgrade --install $NAMESPACE ./k8s/helm/tester \
+          helm upgrade --install $NAMESPACE ./k8s/helm/$NAMESPACE \
             --namespace $NAMESPACE \
+            --create-namespace \
             --set image.tag=$RELEASE_TAG
 
         
