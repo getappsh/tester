@@ -101,11 +101,11 @@ jobs: ##
       - name: Deploy to kubernetes 
         env:
           RELEASE_TAG: ${{ needs.calculate_new_tag.outputs.tag }}
-          NAMESPACE: landscape
+          NAMESPACE: tester
         run: |
           echo "$RELEASE_TAG"
           helm upgrade --install $NAMESPACE ./k8s/helm/tester \
             --namespace $NAMESPACE \
-            --set imageTag=$RELEASE_TAG
+            --set image.tag=$RELEASE_TAG
 
         
