@@ -7,7 +7,7 @@ const K6_PROM_URL = process.env.K6_PROM_URL || 'http://localhost:9090';
 process.env.K6_PROMETHEUS_RW_SERVER_URL = process.env.K6_PROM_URL;
 function runK6Test() {
   console.log(`[${new Date().toISOString()}] Running k6 test...`);
-  const cmd = `./k6 run --out xk6-prometheus-rw getmap-synthetic.js`;
+  const cmd = `K6_PROMETHEUS_RW_SERVER_URL=$K6_PROMETHEUS_RW_SERVER_URL ./k6 run --out xk6-prometheus-rw getmap-synthetic.js`;
   exec(cmd, (error, stdout, stderr) => {
     if (error) {
       console.error(`k6 error: ${error.message}`);
