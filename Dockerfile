@@ -17,8 +17,6 @@ RUN echo "${username}:x:${uid}:${uid}:${username}:/home/${username}:/sbin/nologi
 
 # Set working directory
 
-# Install k6 (use root for package installation)
-COPY --chown=${uid}:${uid} --from=k6official /usr/bin/k6 .
 
 # Copy package.json and package-lock.json
 COPY --chown=${uid}:${uid} package*.json ./
