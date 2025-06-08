@@ -104,7 +104,7 @@ jobs: ##
           NAMESPACE: landscape
         run: |
           echo "$RELEASE_TAG"
-          helm upgrade --install $NAMESPACE ./k8s/helm/landscape \
+          helm upgrade --install $NAMESPACE ./k8s/helm/tester \
             --namespace $NAMESPACE \
             --set imageTag=$RELEASE_TAG
 
