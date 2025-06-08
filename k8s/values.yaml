@@ -1,5 +1,0 @@
-BASE_URL: "https://api-getapp.apps.getapp.sh"
-CRON_SCHEDULE: "*/15 * * * *"
-# just add the base url of promethus. the app will add the full address of the endpoint.
-K6_PROM_URL: "http://monitor-prometheus-server.monitoring.svc.cluster.local:9090"
-DEVICE_SECRET: "12345678"
