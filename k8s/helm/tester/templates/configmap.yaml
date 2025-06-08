@@ -8,5 +8,4 @@ data:
   BASE_URL: {{ .Values.env.BASE_URL | quote }}
   CRON_SCHEDULE: {{ .Values.env.CRON_SCHEDULE | quote }}
   K6_PROM_URL: {{ .Values.env.K6_PROM_URL | quote }}
-  K6_PROMETHEUS_RW_SERVER_URL: {{ .Values.env.K6_PROMETHEUS_RW_SERVER_URL | default .Values.env.K6_PROM_URL | quote }}
   DEVICE_SECRET: {{ .Values.env.DEVICE_SECRET | quote }}
