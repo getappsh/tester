@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: landscape-service
+  namespace: landscape
+spec:
+  selector:
+    app: landscape
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

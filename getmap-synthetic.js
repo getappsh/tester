@@ -1,4 +1,4 @@
-// k6 run --out json=results/test_results.jsont --out experimental-prometheus-rw=http://localhost:9090/api/v1/write getmap-synthetic.js
+// k6 run --out json=results/test_results.jsont --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write getmap-synthetic.js
 
 import http from "k6/http";
 import { SharedArray } from 'k6/data';

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tester
+  namespace: tester
+  labels:
+    app: tester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tester
+  template:
+    metadata:
+      labels:
+        app: tester
+    spec:
+      containers:
+      - name: tester
+        image: harbor.getapp.sh/getapp-dev/tester:latest
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - configMapRef:
+            name: tester-config

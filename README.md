@@ -23,6 +23,12 @@ You must set the following environment variables when running the container:
 - **Example:** `K6_PROM_URL="http://my-prometheus:9090"`
 - **Usage:** k6 will send metrics to this Prometheus endpoint using the experimental remote write output.
 
+### 4. `DEVICE_SECRET`
+- **Purpose:** Secret key for API authentication used by the test scripts.
+- **Default:** `"12345678"`
+- **Example:** `DEVICE_SECRET="your-secure-secret"`
+- **Usage:** Set this environment variable to a secure value for production or sensitive environments. If not set, the default is used.
+ 
 ## Example Docker Run Command
 
 ```sh
@@ -32,6 +38,7 @@ docker run \
   -e K6_PROM_URL="http://my-prometheus:9090" \
   your-k6-image:latest
 ```
+
 
 ## Notes
 - Make sure to update `getmap-synthetic.js` to use `BASE_URL` from the environment (e.g., `const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";`).

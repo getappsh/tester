@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tester-config
+  namespace: tester
+data:
+  BASE_URL: "{{ .Values.BASE_URL }}"
+  CRON_SCHEDULE: "{{ .Values.CRON_SCHEDULE }}"
+  K6_PROM_URL: "{{ .Values.K6_PROM_URL }}"
+  DEVICE_SECRET: "{{ .Values.DEVICE_SECRET }}"
