@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: testere-deployment
-  namespace: testere
+  name: tester-deployment
+  namespace: tester
   labels:
-    app: testere
+    app: tester
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: testere
+      app: tester
   template:
     metadata:
       labels:
-        app: testere
+        app: tester
     spec:
       containers:
-      - name: testere
-        image: "harbor.getapp.sh/getapp-dev/testere:{{ .Values.imageTag }}"
+      - name: tester
+        image: "harbor.getapp.sh/getapp-dev/tester:{{ .Values.imageTag }}"
         ports:
         - containerPort: 8000

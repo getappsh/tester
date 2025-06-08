@@ -1,24 +1,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: testere-ingress
-  namespace: testere
+  name: tester-ingress
+  namespace: tester
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
   rules:
-  - host: testere.apps.getapp.sh
+  - host: tester.apps.getapp.sh
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: testere-service
+            name: tester-service
             port:
               number: 80
   tls:
     - hosts:
-        - testere.apps.getapp.sh
-      secretName: testere
+        - tester.apps.getapp.sh
+      secretName: tester
