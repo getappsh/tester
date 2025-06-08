@@ -3,10 +3,11 @@ const { exec } = require('child_process');
 
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '*/5 * * * *';
 const K6_PROM_URL = process.env.K6_PROM_URL || 'http://localhost:9090';
-//
+// Set K6_PROMETHEUS_RW_SERVER_URL environment variable to the same value as K6_PROM_URL
+process.env.K6_PROMETHEUS_RW_SERVER_URL = process.env.K6_PROM_URL;
 function runK6Test() {
   console.log(`[${new Date().toISOString()}] Running k6 test...`);
-  const cmd = `./k6 run --out xk6-prometheus-rw=${K6_PROM_URL}/api/v1/write getmap-synthetic.js`;
+  const cmd = `./k6 run --out xk6-prometheus-rw getmap-synthetic.js`;
   exec(cmd, (error, stdout, stderr) => {
     if (error) {
       console.error(`k6 error: ${error.message}`);
