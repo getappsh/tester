@@ -38,5 +38,5 @@ resources: {}
 env:
   BASE_URL: "https://api-getapp.apps.getapp.sh"
   CRON_SCHEDULE: "*/2 * * * *"
-  K6_PROM_URL: "http://monitor-prometheus-pushgateway.monitoring.svc.cluster.local:9091/metrics/job/k6_test"
+  K6_PROM_URL: "http://monitor-prometheus-server.monitoring.svc.cluster.local:9090/api/v1/write"
   DEVICE_SECRET: "12345678"
