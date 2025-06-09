@@ -14,7 +14,7 @@ function runK6Test() {
   process.env.K6_PROMETHEUS_RW_SERVER_URL = K6_PROM_URL;
   
   // Run k6 with the xk6-prometheus-rw output option
-  const cmd = `K6_PROMETHEUS_RW_SERVER_URL=${K6_PROM_URL} ./k6 run --out json=summary.json --out xk6-prometheus-rw getmap-synthetic.js`;
+  const cmd = `K6_PROMETHEUS_RW_SERVER_URL=${K6_PROM_URL} ./k6 run --out experimental-prometheus-rw getmap-synthetic.js`;
   exec(cmd, (error, stdout, stderr) => {
     if (error) {
       console.error(`k6 error: ${error.message}`);
