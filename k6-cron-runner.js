@@ -9,32 +9,21 @@ process.env.K6_PROMETHEUS_RW_SERVER_URL = K6_PROM_URL;
 
 function runK6Test() {
   console.log(`[${new Date().toISOString()}] Running k6 test...`);
-  // Create a temporary JSON file with Prometheus configuration
-  const tempConfigCmd = `cat > k6-prom-config.json << EOF
-{
-  "push-gateway-url": "${K6_PROM_URL}",
-  "insecure-skip-tls-verify": true
-}
-EOF`;
   
-  exec(tempConfigCmd, (error) => {
+  // Set the environment variable for k6
+  process.env.K6_PROMETHEUS_RW_SERVER_URL = K6_PROM_URL;
+  
+  // Run k6 with the xk6-prometheus-rw output option
+  const cmd = `K6_PROMETHEUS_RW_SERVER_URL=${K6_PROM_URL} ./k6 run --out json=summary.json --out xk6-prometheus-rw getmap-synthetic.js`;
+  exec(cmd, (error, stdout, stderr) => {
     if (error) {
-      console.error(`Error creating config file: ${error.message}`);
+      console.error(`k6 error: ${error.message}`);
       return;
     }
-    
-    // Run k6 with the prometheus-push output option
-    const cmd = `./k6 run --out json=summary.json --out prometheus-push=k6-prom-config.json getmap-synthetic.js`;
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`k6 error: ${error.message}`);
-        return;
-      }
-      if (stderr) {
-        console.error(`k6 stderr: ${stderr}`);
-      }
-      console.log(`k6 stdout: ${stdout}`);
-    });
+    if (stderr) {
+      console.error(`k6 stderr: ${stderr}`);
+    }
+    console.log(`k6 stdout: ${stdout}`);
   });
 }
 
