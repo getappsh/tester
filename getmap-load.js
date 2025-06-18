@@ -343,7 +343,6 @@ const bBoxArray = new SharedArray('bbox', function () {
 
 
 function getBoundingBoxBySquareKm(lon, lat,squareKm) {
-  const earthRadiusKm = 6371;
   const side = Math.sqrt(squareKm); // side length in km
 
   // Latitude: 1 deg ≈ 110.574 km

@@ -2,7 +2,7 @@
 
 import http from "k6/http";
 import { SharedArray } from 'k6/data';
-import { group, check, sleep } from "k6";
+import { group, check, sleep, randomSeed } from "k6";
 import { Rate } from 'k6/metrics';
 import exec from 'k6/execution';
 
@@ -16,6 +16,9 @@ export const options = {
   },
 };
 const getapp_success = new Rate('getapp_success');
+
+const USE_THE_SAME_MAP = (__ENV.USE_THE_SAME_MAP ?? 'false') === 'true';
+const MAP_SIZE_SQM = __ENV.MAP_SIZE_SQM || 500;
 
 const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
 
@@ -123,6 +126,7 @@ function runSDKTest() {
       }
       getapp_success.add(success, { test_name: "map-import" });
       status = request.json("status")
+      console.log("jobId: ", request.json('metaData')['jobId'])
     }
 
     mapImport()
@@ -400,13 +404,41 @@ function runHeathCheck() {
 // }
 
 const bBoxArray = new SharedArray('bbox', function () {
+  if (USE_THE_SAME_MAP){
+    randomSeed(1);
+    console.log("Using the same map")
+  }
   const random = () => Math.floor(Math.random() * 10)
   const dataArray = [];
 
   for (let i = 0; i < NUMBER_OF_UNIQUE_MAPS; i++) {
-    const bbox = `34.508809${random()}${random()},31.542892${random()}${random()},34.508848${random()}${random()},31.542919${random()}${random()}`
+    // const bbox = `34.508809${random()}${random()},31.542892${random()}${random()},34.508848${random()}${random()},31.542919${random()}${random()}`
+
+    const lon =  Number(`34.508${random()}${random()}000`);
+    const lat =  Number(`31.542${random()}${random()}000`);
+    const bbox = getBoundingBoxBySquareMeters(lon, lat, MAP_SIZE_SQM);
+
     dataArray.push(bbox)
   }
 
   return dataArray; // must be an array
 });
+
+
+function getBoundingBoxBySquareMeters(lon, lat, squareMeters) {
+  const squareKm = squareMeters / 1_000_000; // convert to km²
+  const side = Math.sqrt(squareKm); // side length in km
+
+  // Latitude: 1 deg ≈ 110.574 km
+  const deltaLat = (side / 2) / 110.574;
+
+  // Longitude: 1 deg ≈ 111.320*cos(latitude) km
+  const deltaLon = (side / 2) / (111.320 * Math.cos(lat * Math.PI / 180));
+
+  const minLat = lat - deltaLat;
+  const maxLat = lat + deltaLat;
+  const minLon = lon - deltaLon;
+  const maxLon = lon + deltaLon;
+
+  return `${minLon},${minLat},${maxLon},${maxLat}`;
+}
