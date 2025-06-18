@@ -1,10 +1,11 @@
-// k6 run --out json=results/test_results.jsont --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write getmap-synthetic.js
+// k6 run --out json=results/test_results.json --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write getmap-synthetic.js
 
 import http from "k6/http";
 import { SharedArray } from 'k6/data';
 import { group, check, sleep, randomSeed } from "k6";
-import { Rate } from 'k6/metrics';
-import exec from 'k6/execution';
+import { Rate, Trend, Counter } from 'k6/metrics';
+import exec, { test } from 'k6/execution';
+
 
 export const options = {
   scenarios: {
@@ -15,30 +16,27 @@ export const options = {
     },
   },
 };
+
+
+// let exportDuration = new Trend('export_duration', true);
+// const exportTimeoutRate = new Rate('export_timeout_rate');
 const getapp_success = new Rate('getapp_success');
 
-const USE_THE_SAME_MAP = (__ENV.USE_THE_SAME_MAP ?? 'false') === 'true';
-const MAP_SIZE_SQM = __ENV.MAP_SIZE_SQM || 500;
+export const filesDownloaded = new Counter('map_downloaded');
+export const totalDownloadedBytes = new Counter('total_downloaded_map_bytes');
+export const fileDownloadDuration = new Trend('map_download_duration', true);
 
 const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
-
-//Do not put high value may overload Libot
-const NUMBER_OF_UNIQUE_MAPS = 1
-
-const DEVICE_SECRET = __ENV.DEVICE_SECRET || "12345678";
-
-let authToken;
+// const BASE_URL = __ENV.BASE_URL || "https://api-project-refactor.apps.getapp.sh";
 
 
-const getDefaultHeaders = () => {
-  return {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Device-Auth": DEVICE_SECRET
-    // "Authorization": `Bearer ${authToken}`
-  }
-}
+const NUMBER_OF_UNIQUE_MAPS = __ENV.NUMBER_OF_UNIQUE_MAPS || 1
+const USE_THE_SAME_MAP = (__ENV.USE_THE_SAME_MAP ?? 'false') === 'true';
+const MAP_SIZE_SQM = __ENV.MAP_SIZE_SQM || 500;
+const TEST_FILE_DOWNLOAD = (__ENV.TEST_FILE_DOWNLOAD ?? 'true') === 'true';
+const DEVICE_SECRET = __ENV.DEVICE_SECRET || "DEVICE_SECRET";
 
+// let authToken;
 
 export default function () {
   runSDKTest()
@@ -50,7 +48,25 @@ export default function () {
 function runSDKTest() {
   const deviceId = "k6-" + exec.vu.idInTest
   // login();
+  testDiscovery(deviceId);
 
+  let importRequestId = testMapImport(deviceId);
+
+  let downloadUrls = testPrepareDelivery(importRequestId, deviceId);  
+
+  // const downloadUrls = ['https://freetestdata.com/wp-content/uploads/2021/09/Free_Test_Data_1MB_XLS.xls', 'https://testfile.org/1.3GBiconpng']; // for testing purposes
+  if (TEST_FILE_DOWNLOAD){
+    testFilesDownload(downloadUrls);
+  }
+
+  testDeliveryStatusDuringDownload(importRequestId, deviceId);
+
+  testConfig(deviceId);
+ 
+  testInventoryUpdates(deviceId);
+}
+
+function testDiscovery(deviceId) {
   group("Discovery", () => {
     {
       let url = BASE_URL + `/api/device/discover/map`;
@@ -68,27 +84,9 @@ function runSDKTest() {
       getapp_success.add(success, { test_name: "discovery" });
     }
   });
+}
 
-  const downloadStatus = (catalogId) => {
-    let url = BASE_URL + `/api/delivery/updateDownloadStatus`;
-
-    let body = { "deviceId": deviceId, "catalogId": catalogId, "downloadStart": new Date(), "bitNumber": 0, "downloadData": 32, "currentTime": new Date(), "deliveryStatus": "Start", "type": "map" };
-    let params = { headers: getDefaultHeaders() };
-    let request = http.post(url, JSON.stringify(body), params);
-
-    const success = check(request, {
-      "Update download status": (r) => {
-        if (r.status !== 201) {
-          console.error(`Update download status failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-          return false;
-        }
-        return true;
-      }
-    });
-    getapp_success.add(success, { test_name: "download-status" });
-  }
-
-
+function testMapImport(deviceId){
   let importRequestId = '0';
   group("Import Map", () => {
     const mapImport = () => {
@@ -107,7 +105,7 @@ function runSDKTest() {
       }
       getapp_success.add(success, { test_name: "map-import" });
       importRequestId = request.json("importRequestId")
-      downloadStatus(importRequestId)
+      downloadStatus(importRequestId, deviceId)
     }
 
     
@@ -126,7 +124,7 @@ function runSDKTest() {
       }
       getapp_success.add(success, { test_name: "map-import" });
       status = request.json("status")
-      console.log("jobId: ", request.json('metaData')['jobId'])
+      console.log(request.json())
     }
 
     mapImport()
@@ -136,12 +134,16 @@ function runSDKTest() {
         mapStatus()
         sleep(2)
       }
-      downloadStatus(importRequestId)
+      downloadStatus(importRequestId, deviceId)
     }
     
   });
+  return importRequestId;
+}
 
-  let downloadUrl
+function testPrepareDelivery(importRequestId, deviceId) {
+  let downloadUrls = [];
+
   group("Prepare Delivery", () => {
     let status = 'start';
     const prepareDelivery = () => {
@@ -188,23 +190,27 @@ function runSDKTest() {
         getPreparedDelivery()
 
       }
-      downloadUrl = artifacts[0]["url"];
-      console.log(downloadUrl)
-        // put in a comment if you want to skip file download
-      filesDownload(downloadUrl);
+      downloadUrls.push(artifacts[0]["url"]);
+      downloadUrls.push(artifacts[1]["url"]);
+      console.log(downloadUrls)
     }
   });
 
+  return downloadUrls;
+}
 
+
+function testDeliveryStatusDuringDownload(importRequestId, deviceId) {
   group("Delivery", () => {
     for (let i = 1; i <= 5; i++) {
-      downloadStatus(importRequestId)
+      downloadStatus(importRequestId, deviceId)
       sleep(2)
     }
   });
+}
 
-
-  group("Config", () => {
+function testConfig(deviceId) {
+   group("Config", () => {
     {
       let url = BASE_URL + `/api/device/config/${deviceId}?group=windows`;
       let params = { headers: getDefaultHeaders() };
@@ -223,8 +229,9 @@ function runSDKTest() {
       sleep(1)
     }
   });
+}
 
-
+function testInventoryUpdates(deviceId) {
   group("Inventory Updates", () => {
     {
       let url = BASE_URL + `/api/map/inventory/updates`;
@@ -249,21 +256,21 @@ function runSDKTest() {
   });
 }
 
-function filesDownload(downloadUrl) {
+function testFilesDownload(downloadUrls) {
   group("File download", () => {
-    if (!downloadUrl) {
+    if (!downloadUrls?.length || downloadUrls?.length < 2 ) {
       console.error("Download url is empty");
       return
     }
 
-    let params = { headers: getDefaultHeaders() };
+    let params = { headers: getDefaultHeaders(), responseType: 'none', timeout: '30m' };
     // let request = http.get(downloadUrl, params);
 
     const responses = http.batch([
-      ['GET', changeFileExtension(downloadUrl), params],
-      ['GET', downloadUrl, params],
+      ['GET', downloadUrls[0], null, params],
+      ['GET', downloadUrls[1], null, params],
     ]);
-
+    
 
     let success = check(responses[0], {
       "Download json": (r) => {
@@ -288,132 +295,44 @@ function filesDownload(downloadUrl) {
     });
     getapp_success.add(success, { test_name: "download-gpkg" });
 
+    if (success){
+      filesDownloaded.add(1);
+      totalDownloadedBytes.add(responses[1]?.headers['Content-Length']);
+      fileDownloadDuration.add(responses[1]?.timings?.duration); // in ms
+    }
   });
 }
 
-function changeFileExtension(url) {
-  // Check if the URL ends with .gpkg
-  if (url.endsWith('.gpkg')) {
-    // Replace the .gpkg with .json
-    return url.slice(0, -5) + '.json';
-  } else {
-    // If the URL doesn't end with .gpkg, return it unchanged
-    return url;
-  }
+const downloadStatus = (catalogId, deviceId) => {
+    let url = BASE_URL + `/api/delivery/updateDownloadStatus`;
+
+    let body = { "deviceId": deviceId, "catalogId": catalogId, "downloadStart": new Date(), "bitNumber": 0, "downloadData": 32, "currentTime": new Date(), "deliveryStatus": "Start", "type": "map" };
+    let params = { headers: getDefaultHeaders() };
+    let request = http.post(url, JSON.stringify(body), params);
+
+    const success = check(request, {
+      "Update download status": (r) => {
+        if (r.status !== 201) {
+          console.error(`Update download status failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
+          return false;
+        }
+        return true;
+      }
+    });
+    getapp_success.add(success, { test_name: "download-status" });
 }
-function runHeathCheck() {
-  group("Health", () => {
-    {
-      let url = BASE_URL + '/api/delivery/checkHealth'
-      let request = http.get(url);
-
-      const success = check(request, {
-        "Delivery Health": (r) => {
-          if (r.status !== 200) {
-            console.error(`Delivery Health failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-            return false;
-          }
-          return true;
-        },
-
-      });
-      getapp_success.add(success, { test_name: "delivery-health" });
-    }
-
-    {
-      let url = BASE_URL + '/api/device/checkHealth'
-      let request = http.get(url);
-
-      const success = check(request, {
-        "device Health": (r) => {
-          if (r.status !== 200) {
-            console.error(`device Health failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-            return false;
-          }
-          return true;
-        },
-
-      });
-      getapp_success.add(success, { test_name: "discovery-health" });
-
-    }
-    {
-      let url = BASE_URL + '/api/offering/checkHealth'
-      let request = http.get(url);
-
-      const success = check(request, {
-        "offering Health": (r) => {
-          if (r.status !== 200) {
-            console.error(`offering Health failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-            return false;
-          }
-          return true;
-        },
-
-      });
-      getapp_success.add(success, { test_name: "offering-health" });
-    }
-    {
-      let url = BASE_URL + '/api/map/checkHealth'
-      let request = http.get(url);
-
-      const success = check(request, {
-        "map Health": (r) => {
-          if (r.status !== 200) {
-            console.error(`map Health failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-            return false;
-          }
-          return true;
-        },
-      });
-      getapp_success.add(success, { test_name: "map-health" });
-    }
-
-    sleep(1)
-  });
-}
-
-
-
-// function login(){
-//   if (!authToken || exec.vu.iterationInScenario === 0){
-//     group("Login", () => {
-//       {
-//         let url = BASE_URL + `/api/login`;
-//         // TODO: edit the parameters of the request body.
-//         let body = {"username": "rony@example.com", "password": "rony123"};
-//         let params = {headers: {"Content-Type": "application/json", "Accept": "application/json", "Authorization": `Bearer ${authToken}`}};
-//         let request = http.post(url, JSON.stringify(body), params);
-
-//         const success = check(request, {
-//             "Login": (r) => {
-//               if (r.status !== 201) {
-//                 console.error(`Login failed with status ${r.status}. Response: ${JSON.stringify(r.body)}`);
-//                  return false;
-//             }
-//             return true;
-//             }
-//         });
-//         getapp_success.add(success, {test_name: "login"});
-
-//         authToken = request.json("accessToken"); // Assuming token is returned in the response
-//         // console.log("Received token:", authToken); // Print the token
-//       }
-//     });
-//   }
-// }
 
 const bBoxArray = new SharedArray('bbox', function () {
   if (USE_THE_SAME_MAP){
-    randomSeed(1);
-    console.log("Using the same map")
+      randomSeed(1);
+      console.log("Using the same map")
   }
   const random = () => Math.floor(Math.random() * 10)
   const dataArray = [];
 
   for (let i = 0; i < NUMBER_OF_UNIQUE_MAPS; i++) {
     // const bbox = `34.508809${random()}${random()},31.542892${random()}${random()},34.508848${random()}${random()},31.542919${random()}${random()}`
-
+    
     const lon =  Number(`34.508${random()}${random()}000`);
     const lat =  Number(`31.542${random()}${random()}000`);
     const bbox = getBoundingBoxBySquareMeters(lon, lat, MAP_SIZE_SQM);
@@ -441,4 +360,13 @@ function getBoundingBoxBySquareMeters(lon, lat, squareMeters) {
   const maxLon = lon + deltaLon;
 
   return `${minLon},${minLat},${maxLon},${maxLat}`;
+}
+
+const getDefaultHeaders = () => {
+  return {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Device-Auth": DEVICE_SECRET
+    // "Authorization": `Bearer ${authToken}`
+  }
 }
