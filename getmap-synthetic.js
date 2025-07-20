@@ -29,6 +29,10 @@ export const fileDownloadDuration = new Trend('map_download_duration', true);
 const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
 // const BASE_URL = __ENV.BASE_URL || "https://api-project-refactor.apps.getapp.sh";
 
+// Environment tags for Prometheus metrics
+const DEPLOY_REGION = __ENV.DEPLOY_REGION || "mezuda";
+const TEST_KIND = __ENV.TEST_KIND || "same-map";
+
 
 const NUMBER_OF_UNIQUE_MAPS = __ENV.NUMBER_OF_UNIQUE_MAPS || 1
 const USE_THE_SAME_MAP = (__ENV.USE_THE_SAME_MAP ?? 'false') === 'true';
@@ -81,7 +85,7 @@ function testDiscovery(deviceId) {
       if (!success) {
         console.error(`Discovery failed with status ${request.status}. Response:`, request.json());
       }
-      getapp_success.add(success, { test_name: "discovery" });
+      getapp_success.add(success, { test_name: "discovery", env: DEPLOY_REGION, kind: TEST_KIND });
     }
   });
 }
@@ -103,7 +107,7 @@ function testMapImport(deviceId){
       if (!success) {
         console.error(`Create Import failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "map-import" });
+      getapp_success.add(success, { test_name: "map-import", env: DEPLOY_REGION, kind: TEST_KIND });
       importRequestId = request.json("importRequestId")
       downloadStatus(importRequestId, deviceId)
     }
@@ -122,7 +126,7 @@ function testMapImport(deviceId){
       if (!success) {
         console.error(`Get Import Status failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "map-import" });
+      getapp_success.add(success, { test_name: "map-import", env: DEPLOY_REGION, kind: TEST_KIND });
       status = request.json("status")
       console.log(request.json())
     }
@@ -159,7 +163,7 @@ function testPrepareDelivery(importRequestId, deviceId) {
       if (!success) {
         console.error(`Prepare Delivery failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "prepare-delivery" });
+      getapp_success.add(success, { test_name: "prepare-delivery", env: DEPLOY_REGION, kind: TEST_KIND });
     }
 
 
@@ -177,7 +181,7 @@ function testPrepareDelivery(importRequestId, deviceId) {
       if (!success) {
         console.error(`Get Prepared Delivery failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "prepare-delivery" });
+      getapp_success.add(success, { test_name: "prepare-delivery", env: DEPLOY_REGION, kind: TEST_KIND });
 
       status = request.json("status");
       artifacts = request.json("artifacts")
@@ -224,7 +228,7 @@ function testConfig(deviceId) {
       if (!success) {
         console.error(`Get map config failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "config" });
+      getapp_success.add(success, { test_name: "config", env: DEPLOY_REGION, kind: TEST_KIND });
 
       sleep(1)
     }
@@ -248,7 +252,7 @@ function testInventoryUpdates(deviceId) {
           return true;
         }
       });
-      getapp_success.add(success, { test_name: "inventory-updates" });
+      getapp_success.add(success, { test_name: "inventory-updates", env: DEPLOY_REGION, kind: TEST_KIND });
 
       sleep(1)
     }
@@ -282,7 +286,7 @@ function testFilesDownload(downloadUrls) {
       },
 
     });
-    getapp_success.add(success, { test_name: "download-json" });
+    getapp_success.add(success, { test_name: "download-json", env: DEPLOY_REGION, kind: TEST_KIND });
 
     success = check(responses[1], {
       "Download gpkg": (r) => {
@@ -293,12 +297,12 @@ function testFilesDownload(downloadUrls) {
         return true;
       },
     });
-    getapp_success.add(success, { test_name: "download-gpkg" });
+    getapp_success.add(success, { test_name: "download-gpkg", env: DEPLOY_REGION, kind: TEST_KIND });
 
     if (success){
-      filesDownloaded.add(1);
-      totalDownloadedBytes.add(responses[1]?.headers['Content-Length']);
-      fileDownloadDuration.add(responses[1]?.timings?.duration); // in ms
+      filesDownloaded.add(1, { env: DEPLOY_REGION, kind: TEST_KIND });
+      totalDownloadedBytes.add(responses[1]?.headers['Content-Length'], { env: DEPLOY_REGION, kind: TEST_KIND });
+      fileDownloadDuration.add(responses[1]?.timings?.duration, { env: DEPLOY_REGION, kind: TEST_KIND }); // in ms
     }
   });
 }
@@ -319,7 +323,7 @@ const downloadStatus = (catalogId, deviceId) => {
         return true;
       }
     });
-    getapp_success.add(success, { test_name: "download-status" });
+    getapp_success.add(success, { test_name: "download-status", env: DEPLOY_REGION, kind: TEST_KIND });
 }
 
 const bBoxArray = new SharedArray('bbox', function () {
