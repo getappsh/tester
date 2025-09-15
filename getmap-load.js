@@ -1,21 +1,26 @@
-// k6 run --out json=results/test_results.json --out experimental-prometheus-rw=http://prometheus:9090/api/v1/write getmap-synthetic.js
-
 import http from "k6/http";
 import { SharedArray } from 'k6/data';
-import { group, check, sleep, randomSeed } from "k6";
+import { group, check, sleep } from "k6";
 import { Rate, Trend, Counter } from 'k6/metrics';
 import exec, { test } from 'k6/execution';
 
-
 export const options = {
   scenarios: {
-    one_iteration: {
-      executor: 'per-vu-iterations',
-      vus: 1, // One virtual user
-      iterations: 1, // One iteration 1
+    contacts: {
+      executor: 'shared-iterations',
+      vus: 50,
+      iterations: 50,
+      maxDuration: '30m',
     },
   },
 };
+
+// export const options = {
+//   stages: [
+//     { duration: '20s', target: 10 },  
+//     { duration: '4m', target: 0 },
+//   ],
+// };
 
 
 // let exportDuration = new Trend('export_duration', true);
@@ -26,19 +31,12 @@ export const filesDownloaded = new Counter('map_downloaded');
 export const totalDownloadedBytes = new Counter('total_downloaded_map_bytes');
 export const fileDownloadDuration = new Trend('map_download_duration', true);
 
-const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
-// const BASE_URL = __ENV.BASE_URL || "https://api-project-refactor.apps.getapp.sh";
-
-// Environment tags for Prometheus metrics
-const DEPLOY_REGION = __ENV.DEPLOY_REGION || "mezuda";
-const TEST_KIND = __ENV.TEST_KIND || "same-map";
-
+const BASE_URL = __ENV.BASE_URL || "https://api-project-refactor.apps.getapp.sh";
 
 const NUMBER_OF_UNIQUE_MAPS = __ENV.NUMBER_OF_UNIQUE_MAPS || 1
-const USE_THE_SAME_MAP = (__ENV.USE_THE_SAME_MAP ?? 'false') === 'true';
-const MAP_SIZE_SQM = __ENV.MAP_SIZE_SQM || 500;
-const TEST_FILE_DOWNLOAD = (__ENV.TEST_FILE_DOWNLOAD ?? 'true') === 'true';
 const DEVICE_SECRET = __ENV.DEVICE_SECRET || "DEVICE_SECRET";
+const MAP_SIZE_SQKM = __ENV.MAP_SIZE_SQKM || 1;
+const TEST_FILE_DOWNLOAD = (__ENV.TEST_FILE_DOWNLOAD ?? 'true') === 'true';
 
 // let authToken;
 
@@ -85,7 +83,7 @@ function testDiscovery(deviceId) {
       if (!success) {
         console.error(`Discovery failed with status ${request.status}. Response:`, request.json());
       }
-      getapp_success.add(success, { test_name: "discovery", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "discovery" });
     }
   });
 }
@@ -107,7 +105,7 @@ function testMapImport(deviceId){
       if (!success) {
         console.error(`Create Import failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "map-import", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "map-import" });
       importRequestId = request.json("importRequestId")
       downloadStatus(importRequestId, deviceId)
     }
@@ -126,9 +124,8 @@ function testMapImport(deviceId){
       if (!success) {
         console.error(`Get Import Status failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "map-import", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "map-import" });
       status = request.json("status")
-      console.log(request.json())
     }
 
     mapImport()
@@ -163,7 +160,7 @@ function testPrepareDelivery(importRequestId, deviceId) {
       if (!success) {
         console.error(`Prepare Delivery failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "prepare-delivery", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "prepare-delivery" });
     }
 
 
@@ -181,7 +178,7 @@ function testPrepareDelivery(importRequestId, deviceId) {
       if (!success) {
         console.error(`Get Prepared Delivery failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "prepare-delivery", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "prepare-delivery" });
 
       status = request.json("status");
       artifacts = request.json("artifacts")
@@ -228,7 +225,7 @@ function testConfig(deviceId) {
       if (!success) {
         console.error(`Get map config failed with status ${request.status}. Response: ${JSON.stringify(request.body)}`);
       }
-      getapp_success.add(success, { test_name: "config", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "config" });
 
       sleep(1)
     }
@@ -252,7 +249,7 @@ function testInventoryUpdates(deviceId) {
           return true;
         }
       });
-      getapp_success.add(success, { test_name: "inventory-updates", env: DEPLOY_REGION, kind: TEST_KIND });
+      getapp_success.add(success, { test_name: "inventory-updates" });
 
       sleep(1)
     }
@@ -286,7 +283,7 @@ function testFilesDownload(downloadUrls) {
       },
 
     });
-    getapp_success.add(success, { test_name: "download-json", env: DEPLOY_REGION, kind: TEST_KIND });
+    getapp_success.add(success, { test_name: "download-json" });
 
     success = check(responses[1], {
       "Download gpkg": (r) => {
@@ -297,12 +294,12 @@ function testFilesDownload(downloadUrls) {
         return true;
       },
     });
-    getapp_success.add(success, { test_name: "download-gpkg", env: DEPLOY_REGION, kind: TEST_KIND });
+    getapp_success.add(success, { test_name: "download-gpkg" });
 
     if (success){
-      filesDownloaded.add(1, { env: DEPLOY_REGION, kind: TEST_KIND });
-      totalDownloadedBytes.add(responses[1]?.headers['Content-Length'], { env: DEPLOY_REGION, kind: TEST_KIND });
-      fileDownloadDuration.add(responses[1]?.timings?.duration, { env: DEPLOY_REGION, kind: TEST_KIND }); // in ms
+      filesDownloaded.add(1);
+      totalDownloadedBytes.add(responses[1]?.headers['Content-Length']);
+      fileDownloadDuration.add(responses[1]?.timings?.duration); // in ms
     }
   });
 }
@@ -323,23 +320,20 @@ const downloadStatus = (catalogId, deviceId) => {
         return true;
       }
     });
-    getapp_success.add(success, { test_name: "download-status", env: DEPLOY_REGION, kind: TEST_KIND });
+    getapp_success.add(success, { test_name: "download-status" });
 }
 
 const bBoxArray = new SharedArray('bbox', function () {
-  if (USE_THE_SAME_MAP){
-      randomSeed(1);
-      console.log("Using the same map")
-  }
   const random = () => Math.floor(Math.random() * 10)
   const dataArray = [];
 
   for (let i = 0; i < NUMBER_OF_UNIQUE_MAPS; i++) {
     // const bbox = `34.508809${random()}${random()},31.542892${random()}${random()},34.508848${random()}${random()},31.542919${random()}${random()}`
+    // const bbox = `34.50180900,31.50249200,34.53984800,31.57291900`
     
     const lon =  Number(`34.508${random()}${random()}000`);
     const lat =  Number(`31.542${random()}${random()}000`);
-    const bbox = getBoundingBoxBySquareMeters(lon, lat, MAP_SIZE_SQM);
+    const bbox = getBoundingBoxBySquareKm(lon, lat, MAP_SIZE_SQKM);
 
     dataArray.push(bbox)
   }
@@ -348,8 +342,7 @@ const bBoxArray = new SharedArray('bbox', function () {
 });
 
 
-function getBoundingBoxBySquareMeters(lon, lat, squareMeters) {
-  const squareKm = squareMeters / 1_000_000; // convert to km²
+function getBoundingBoxBySquareKm(lon, lat,squareKm) {
   const side = Math.sqrt(squareKm); // side length in km
 
   // Latitude: 1 deg ≈ 110.574 km
@@ -363,8 +356,9 @@ function getBoundingBoxBySquareMeters(lon, lat, squareMeters) {
   const minLon = lon - deltaLon;
   const maxLon = lon + deltaLon;
 
-  return `${minLon},${minLat},${maxLon},${maxLat}`;
+  return `${minLon},${minLat},${maxLon},${maxLat}`; // [minLon, minLat, maxLon, maxLat]; // [west, south, east, north]
 }
+
 
 const getDefaultHeaders = () => {
   return {
