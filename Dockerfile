@@ -27,6 +27,6 @@ RUN npm install
 # Copy the rest of the application files
 COPY --chown=${uid}:${uid} . .
 
-RUN chmod +x k6-cron-runner.js  getmap-synthetic.js k6
+RUN chmod +x node-cron-runner.js getmap-synthetic-node.js k6
 
-CMD ["node", "k6-cron-runner.js"]
+CMD ["node", "node-cron-runner.js"]

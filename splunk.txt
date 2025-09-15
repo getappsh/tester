@@ -1,0 +1,16 @@
+index=* sourcetype=kubernetes 
+namespace="$namespace" pod="api*" 
+| rex field=_raw "stdout F (?<extracted_json>\{.*\})" 
+| spath input=extracted_json 
+| search traceId="$trace_id$" 
+| eval log_level_display=case(
+    level="60", "🔴 FATAL",
+    level="50", "🔴 ERROR", 
+    level="40", "🟠 WARN", 
+    level="30", "🟢 INFO", 
+    level="20", "🟣 DEBUG", 
+    level="10", "⚪ TRACE", 
+    1=1, "🟢 INFO"
+  ) 
+| eval formatted_log=log_level_display." [".time."] ".context." - ".message." (".traceId.")" 
+| table formatted_log

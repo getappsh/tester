@@ -1,1 +1,0 @@
-This is a placeholder file to allow creation of the chart directory for the Helm chart.

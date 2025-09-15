@@ -1,9 +1,20 @@
 version: "3.8"
 
 services:
-  k6-server:
+  node-tester:
     build:
       context: .
-    ports:
-      - "3000:3000"
-    container_name: k6-metrics-server
+    # The command to run the new Node.js synthetic test script.
+    # This service will run the test once and then exit.
+    command: node tester/getmap-synthetic-node.js
+    container_name: node-synthetic-tester
+    environment:
+      # Variables for the Node.js script
+      - BASE_URL=https://api-getapp.apps.getapp.sh
+      - DEVICE_SECRET=12345678
+      - SPLUNK_HEC_URL=http://your-splunk-instance:8088/services/collector
+      - SPLUNK_HEC_TOKEN=YOUR_SPLUNK_HEC_TOKEN
+      - SPLUNK_INDEX=YOUR_SPLUNK_INDEX
+
+      # Variables from k6-cron-runner.js (included as requested)
+      - CRON_SCHEDULE=*/5 * * * *
