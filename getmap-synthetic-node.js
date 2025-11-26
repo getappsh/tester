@@ -9,7 +9,7 @@ const SPLUNK_HEC_TOKEN = process.env.SPLUNK_HEC_TOKEN;
 const SPLUNK_INDEX = process.env.SPLUNK_INDEX;
 const METRIC_TAG = process.env.METRIC_TAG || 'getapp-synthetic';
 
-const DEPLOY_REGION = process.env.DEPLOY_REGION || "mezuda";
+const DEPLOY_REGION = process.env.DEPLOY_REGION || "deploy-region";
 const TEST_KIND = process.env.TEST_KIND || "same-map";
 const NUMBER_OF_UNIQUE_MAPS = parseInt(process.env.NUMBER_OF_UNIQUE_MAPS || '1');
 const USE_THE_SAME_MAP = (process.env.USE_THE_SAME_MAP || 'false') === 'true';
