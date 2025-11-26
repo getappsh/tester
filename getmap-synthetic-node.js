@@ -171,12 +171,13 @@ async function testDiscovery(deviceId) {
         const response = await axios.post(url, body, { headers: getDefaultHeaders() });
         const success = response.status === 201 && response.data.status === 'Success';
         
+        console.log('Discovery response:', JSON.stringify(response.data));
         recordMetric('discovery', success);
         
         if (!success) {
             console.error(`Discovery failed. Status: ${response.status}, Response:`, response.data);
         } else {
-            console.log('Discovery succeeded');
+            console.log('✓ Discovery succeeded');
         }
         
         return success;
@@ -210,6 +211,7 @@ async function testMapImport(deviceId) {
         const createResponse = await axios.post(createUrl, createBody, { headers: getDefaultHeaders() });
         const createSuccess = createResponse.status === 201 && createResponse.data.status !== 'Error';
         
+        console.log('Create Import response:', JSON.stringify(createResponse.data));
         recordMetric('map-import-create', createSuccess);
 
         if (!createSuccess) {
@@ -218,7 +220,7 @@ async function testMapImport(deviceId) {
         }
 
         importRequestId = createResponse.data.importRequestId;
-        console.log(`Import created with ID: ${importRequestId}`);
+        console.log(`✓ Import created with ID: ${importRequestId}`);
         
         await updateDownloadStatus(importRequestId, deviceId);
 
@@ -232,7 +234,7 @@ async function testMapImport(deviceId) {
             
             if (statusResponse.status === 200 && statusResponse.data.status !== 'Error') {
                 status = statusResponse.data.status;
-                console.log(`Import status: ${status}`);
+                console.log('Import status response:', JSON.stringify(statusResponse.data));
             } else {
                 status = 'Error';
                 console.error(`Get Import Status failed. Status: ${statusResponse.status}, Response:`, statusResponse.data);
@@ -272,6 +274,9 @@ async function updateDownloadStatus(catalogId, deviceId) {
         const response = await axios.post(url, body, { headers: getDefaultHeaders() });
         const success = response.status === 201;
         
+        if (success) {
+            console.log('✓ Update download status succeeded');
+        }
         recordMetric('download-status', success);
         
         if (!success) {
@@ -302,6 +307,7 @@ async function testPrepareDelivery(importRequestId, deviceId) {
         const prepareResponse = await axios.post(prepareUrl, prepareBody, { headers: getDefaultHeaders() });
         const prepareSuccess = prepareResponse.status === 201 && prepareResponse.data.status !== 'error';
         
+        console.log('Prepare Delivery response:', JSON.stringify(prepareResponse.data));
         recordMetric('prepare-delivery', prepareSuccess);
 
         if (!prepareSuccess) {
@@ -309,7 +315,7 @@ async function testPrepareDelivery(importRequestId, deviceId) {
             return null;
         }
 
-        console.log('Delivery preparation initiated');
+        console.log('✓ Delivery preparation initiated');
 
         // Poll for prepared delivery
         let status = '';
@@ -324,7 +330,7 @@ async function testPrepareDelivery(importRequestId, deviceId) {
             if (getResponse.status === 200 && getResponse.data.status !== 'error') {
                 status = getResponse.data.status;
                 artifacts = getResponse.data.artifacts;
-                console.log(`Prepared delivery status: ${status}`);
+                console.log('Get Prepared Delivery response:', JSON.stringify(getResponse.data));
             } else {
                 status = 'error';
                 console.error(`Get Prepared Delivery failed. Status: ${getResponse.status}, Response:`, getResponse.data);
@@ -337,7 +343,7 @@ async function testPrepareDelivery(importRequestId, deviceId) {
         if (getSuccess && artifacts && artifacts.length >= 2) {
             downloadUrls.push(artifacts[0].url);
             downloadUrls.push(artifacts[1].url);
-            console.log('Download URLs received:', downloadUrls);
+            console.log('✓ Download URLs received:', JSON.stringify(downloadUrls));
             return downloadUrls;
         }
 
@@ -371,7 +377,12 @@ async function testFilesDownload(downloadUrls) {
         // Check JSON download (first URL)
         const jsonSuccess = results[0].status === 'fulfilled' && results[0].value.status === 200;
         recordMetric('download-json', jsonSuccess);
-        console.log(`JSON download ${jsonSuccess ? 'successful' : 'failed'}`);
+        if (jsonSuccess) {
+            const jsonSize = results[0].value.headers['content-length'] || results[0].value.data?.length || 'unknown';
+            console.log(`✓ JSON download successful. Size: ${jsonSize} bytes`);
+        } else {
+            console.error('✗ JSON download failed');
+        }
 
         // Check GPKG download (second URL)
         const gpkgSuccess = results[1].status === 'fulfilled' && results[1].value.status === 200;
@@ -385,10 +396,10 @@ async function testFilesDownload(downloadUrls) {
                 duration_ms: duration
             });
             
-            console.log(`GPKG download successful. Size: ${contentLength} bytes, Duration: ${duration}ms`);
+            console.log(`✓ GPKG download successful. Size: ${contentLength} bytes, Duration: ${duration}ms`);
         } else {
             recordMetric('download-gpkg', false);
-            console.log('GPKG download failed');
+            console.error('✗ GPKG download failed');
         }
 
         return jsonSuccess && gpkgSuccess;
@@ -419,12 +430,13 @@ async function testConfig(deviceId) {
         const response = await axios.get(url, { headers: getDefaultHeaders() });
         
         const success = response.status === 200 && response.data.group === 'windows';
+        console.log('Config response:', JSON.stringify(response.data));
         recordMetric('config', success);
         
         if (!success) {
             console.error(`Get config failed. Status: ${response.status}, Response:`, response.data);
         } else {
-            console.log('Config test succeeded');
+            console.log('✓ Config test succeeded');
         }
         
         return success;
@@ -448,12 +460,13 @@ async function testInventoryUpdates(deviceId, importRequestId) {
         const response = await axios.post(url, body, { headers: getDefaultHeaders() });
         const success = response.status === 201;
         
+        console.log('Inventory Updates response:', JSON.stringify(response.data));
         recordMetric('inventory-updates', success);
         
         if (!success) {
             console.error(`Inventory Updates failed. Status: ${response.status}, Response:`, response.data);
         } else {
-            console.log('Inventory Updates succeeded');
+            console.log('✓ Inventory Updates succeeded');
         }
         
         return success;
@@ -506,6 +519,23 @@ async function runSDKTest() {
         await testInventoryUpdates(deviceId, importRequestId);
 
         console.log('\n=== SDK Test Completed ===');
+        
+        // Print summary
+        const totalChecks = metrics.length;
+        const successfulChecks = metrics.filter(m => m.success === 1).length;
+        const failedChecks = totalChecks - successfulChecks;
+        
+        console.log('\n  █ TOTAL RESULTS\n');
+        console.log(`    checks_total.......: ${totalChecks}`);
+        console.log(`    checks_succeeded...: ${((successfulChecks/totalChecks)*100).toFixed(2)}% ${successfulChecks} out of ${totalChecks}`);
+        console.log(`    checks_failed......: ${((failedChecks/totalChecks)*100).toFixed(2)}% ${failedChecks} out of ${totalChecks}`);
+        console.log('');
+        
+        metrics.forEach(m => {
+            const icon = m.success ? '✓' : '✗';
+            console.log(`    ${icon} ${m.test_name}`);
+        });
+        console.log('');
     } catch (error) {
         console.error('\nUnexpected error during SDK test:', error);
     }
