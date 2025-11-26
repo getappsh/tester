@@ -220,7 +220,7 @@ async function testMapImport(deviceId) {
         importRequestId = createResponse.data.importRequestId;
         console.log(`Import created with ID: ${importRequestId}`);
         
-        await updateDownloadStatus(importRequestId, deviceId, 'Start');
+        await updateDownloadStatus(importRequestId, deviceId);
 
         // Poll for status
         let status = '';
@@ -243,7 +243,7 @@ async function testMapImport(deviceId) {
         recordMetric('map-import-status', statusSuccess);
 
         if (statusSuccess) {
-            await updateDownloadStatus(importRequestId, deviceId, 'Done');
+            await updateDownloadStatus(importRequestId, deviceId);
             return importRequestId;
         }
         
@@ -255,7 +255,7 @@ async function testMapImport(deviceId) {
     }
 }
 
-async function updateDownloadStatus(catalogId, deviceId, deliveryStatus) {
+async function updateDownloadStatus(catalogId, deviceId) {
     try {
         const url = `${BASE_URL}/api/delivery/updateDownloadStatus`;
         const body = {
@@ -265,23 +265,23 @@ async function updateDownloadStatus(catalogId, deviceId, deliveryStatus) {
             "bitNumber": 0,
             "downloadData": 32,
             "currentTime": new Date(),
-            "deliveryStatus": deliveryStatus,
+            "deliveryStatus": "Start",
             "type": "map"
         };
 
         const response = await axios.post(url, body, { headers: getDefaultHeaders() });
         const success = response.status === 201;
         
-        recordMetric(`download-status-${deliveryStatus.toLowerCase()}`, success);
+        recordMetric('download-status', success);
         
         if (!success) {
-            console.error(`Update download status (${deliveryStatus}) failed. Status: ${response.status}, Response:`, response.data);
+            console.error(`Update download status failed. Status: ${response.status}, Response:`, response.data);
         }
         
         return success;
     } catch (error) {
-        console.error(`Update download status (${deliveryStatus}) error:`, error.response ? error.response.data : error.message);
-        recordMetric(`download-status-${deliveryStatus.toLowerCase()}`, false);
+        console.error('Update download status error:', error.response ? error.response.data : error.message);
+        recordMetric('download-status', false);
         return false;
     }
 }
@@ -404,7 +404,7 @@ async function testDeliveryStatusDuringDownload(importRequestId, deviceId) {
     console.log('\n--- Delivery Status Updates Test ---');
     
     for (let i = 1; i <= 5; i++) {
-        await updateDownloadStatus(importRequestId, deviceId, `Status_${i}`);
+        await updateDownloadStatus(importRequestId, deviceId);
         await sleep(2);
     }
     
