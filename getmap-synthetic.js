@@ -30,7 +30,7 @@ const BASE_URL = __ENV.BASE_URL || "https://api-getapp.apps.getapp.sh";
 // const BASE_URL = __ENV.BASE_URL || "https://api-project-refactor.apps.getapp.sh";
 
 // Environment tags for Prometheus metrics
-const DEPLOY_REGION = __ENV.DEPLOY_REGION || "mezuda";
+const DEPLOY_REGION = __ENV.DEPLOY_REGION || "deploy-region";
 const TEST_KIND = __ENV.TEST_KIND || "same-map";
 
 
