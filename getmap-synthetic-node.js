@@ -486,20 +486,18 @@ async function runSDKTest() {
         const discoverySuccess = await testDiscovery(deviceId);
         
         if (!discoverySuccess) {
-            console.log('Discovery failed, stopping test flow');
-            return;
+            console.log('Discovery failed, continuing with remaining tests');
         }
 
         // Map Import
         const importRequestId = await testMapImport(deviceId);
         
         if (!importRequestId) {
-            console.log('Map Import failed, stopping test flow');
-            return;
+            console.log('Map Import failed, continuing with remaining tests');
         }
 
         // Prepare Delivery
-        const downloadUrls = await testPrepareDelivery(importRequestId, deviceId);
+        const downloadUrls = importRequestId ? await testPrepareDelivery(importRequestId, deviceId) : null;
         
         if (!downloadUrls) {
             console.log('Prepare Delivery failed, continuing with remaining tests');
@@ -510,13 +508,21 @@ async function runSDKTest() {
         }
 
         // Delivery Status Updates
-        await testDeliveryStatusDuringDownload(importRequestId, deviceId);
+        if (importRequestId) {
+            await testDeliveryStatusDuringDownload(importRequestId, deviceId);
+        } else {
+            console.log('Delivery Status Updates skipped (no importRequestId)');
+        }
 
         // Config
         await testConfig(deviceId);
 
         // Inventory Updates
-        await testInventoryUpdates(deviceId, importRequestId);
+        if (importRequestId) {
+            await testInventoryUpdates(deviceId, importRequestId);
+        } else {
+            console.log('Inventory Updates skipped (no importRequestId)');
+        }
 
         console.log('\n=== SDK Test Completed ===');
         
