@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 
 // The cron schedule for running the test. Defaults to every 5 minutes.
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '*/5 * * * *';
@@ -12,20 +12,31 @@ const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '*/5 * * * *';
 function runNodeTest() {
   console.log(`[${new Date().toISOString()}] Running Node.js synthetic test...`);
   
-  // Command to execute the new test script
-  const cmd = `node getmap-synthetic-node.js`;
+  // Spawn the test script as a child process
+  const child = spawn('node', ['getmap-synthetic-node.js']);
   
-  exec(cmd, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Execution error: ${error.message}`);
-      return;
+  // Handle stdout data
+  child.stdout.on('data', (data) => {
+    console.log(`Script stdout: ${data.toString()}`);
+  });
+  
+  // Handle stderr data
+  child.stderr.on('data', (data) => {
+    console.error(`Script stderr: ${data.toString()}`);
+  });
+  
+  // Handle process exit
+  child.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Process exited with code: ${code}`);
+    } else {
+      console.log(`Process completed successfully with exit code: ${code}`);
     }
-    if (stderr) {
-      // Log standard error but don't treat it as a fatal execution error,
-      // as the script itself might output warnings or debug info to stderr.
-      console.error(`Script stderr: ${stderr}`);
-    }
-    console.log(`Script stdout: ${stdout}`);
+  });
+  
+  // Handle errors
+  child.on('error', (error) => {
+    console.error(`Failed to start process: ${error.message}`);
   });
 }
 
